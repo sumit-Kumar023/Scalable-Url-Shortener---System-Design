@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - '27017:27017' # exposed for local debugging with a Mongo GUI; not required by the app
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    ports:
+      - '6379:6379' # exposed for local debugging with redis-cli; not required by the app
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/url-shortener
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    expose:
+      - '4000'
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # No `ports:` mapping on purpose: the backend is only reachable through
+    # Nginx. This is also what makes `docker compose up --scale backend=4`
+    # safe - multiple replicas can't collide on a host port because none
+    # is published.
+
+  frontend:
+    build:
+      context: ./client
+    restart: unless-stopped
+    expose:
+      - '80'
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  mongo-data:
+  redis-data:

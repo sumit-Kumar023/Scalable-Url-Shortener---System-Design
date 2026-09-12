@@ -1,0 +1,5 @@
+- docker compose up --build -d
+- docker compose stop
+- docker compose up -d
+- docker compose up -d --build --scale backend=4
+- home : http://localhost/
