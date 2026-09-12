@@ -1,4 +1,4 @@
-# Snapr - URL Shortener
+# Sinkly - URL Shortener
 
 A production-oriented URL shortener built as a portfolio / interview
 project: React + Nginx + Express + Redis + MongoDB, with real Redis
